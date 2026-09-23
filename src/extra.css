@@ -1,0 +1,5 @@
+.detail { font-size: 12px; color: #666b61; margin: 12px 0 0; }
+.item-dimensions { display: flex; gap: 8px; margin: 18px 0; }
+.item-dimensions label { font-size: 11px; color: #666b61; min-width: 0; flex: 1; }
+.item-dimensions input { display: block; width: 100%; padding: 9px; margin-top: 7px; border: 1px solid #cbc9bf; background: white; border-radius: 3px; }
+.top-actions { scrollbar-width: thin; }

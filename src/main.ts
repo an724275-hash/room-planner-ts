@@ -1,8 +1,9 @@
 import './style.css';
+import './extra.css';
 import {addItem, clampItem, initialPlan, presets, safePlan, snap, type Plan} from './model';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
-app.innerHTML = `<header class="top"><div class="wordmark">ПЛАН <span>КОМНАТЫ</span></div><div class="top-actions"><button id="undo" title="Отменить (Ctrl+Z)">Отменить</button><button id="redo" title="Повторить (Ctrl+Y)">Повторить</button><button id="export-svg">SVG</button><button id="export-json">JSON</button></div></header><main class="layout"><aside class="left"><p class="overline">ПЛАНИРОВЩИК</p><h1>Расставьте мебель по-своему.</h1><p class="intro">Размеры указаны в сантиметрах. Перетащите предмет, чтобы изменить план.</p><section><h2>Комната</h2><div class="dimensions"><label>Ширина<input id="width" type="number" min="200" max="1200" step="10"></label><label>Длина<input id="height" type="number" min="200" max="1200" step="10"></label></div></section><section><h2>Добавить</h2><div id="presets" class="presets"></div></section><p class="hint">Схема сохраняется в этом браузере. Стрелки перемещают выбранный предмет; Delete удаляет.</p></aside><section class="stage" aria-label="План комнаты"><div class="stage-head"><div><strong>Вид сверху</strong><span id="size-label"></span></div><span>Сетка 10 см</span></div><div class="canvas-wrap"><svg id="canvas" role="img" aria-label="Редактируемый план комнаты" xmlns="http://www.w3.org/2000/svg"></svg></div><div class="stage-foot"><span>Нажмите на предмет для настройки</span><button id="reset">Сбросить план</button></div></section><aside class="right"><p class="overline">ВЫБРАННЫЙ ПРЕДМЕТ</p><div id="inspector" class="inspector"></div></aside></main>`;
+app.innerHTML = `<header class="top"><div class="wordmark">ПЛАН <span>КОМНАТЫ</span></div><div class="top-actions"><button id="undo" title="Отменить (Ctrl+Z)">Отменить</button><button id="redo" title="Повторить (Ctrl+Y)">Повторить</button><button id="export-svg">SVG</button><button id="export-json">JSON</button><button id="import-json">Открыть JSON</button><input id="import-file" type="file" accept=".json,application/json" hidden></div></header><main class="layout"><aside class="left"><p class="overline">ПЛАНИРОВЩИК</p><h1>Расставьте мебель по-своему.</h1><p class="intro">Размеры указаны в сантиметрах. Перетащите предмет, чтобы изменить план.</p><section><h2>Комната</h2><div class="dimensions"><label>Ширина<input id="width" type="number" min="200" max="1200" step="10"></label><label>Длина<input id="height" type="number" min="200" max="1200" step="10"></label></div><p id="area" class="detail"></p></section><section><h2>Добавить</h2><div id="presets" class="presets"></div></section><p class="hint">Схема сохраняется в этом браузере. Стрелки перемещают выбранный предмет; Delete удаляет.</p></aside><section class="stage" aria-label="План комнаты"><div class="stage-head"><div><strong>Вид сверху</strong><span id="size-label"></span></div><span>Сетка 10 см</span></div><div class="canvas-wrap"><svg id="canvas" role="img" aria-label="Редактируемый план комнаты" xmlns="http://www.w3.org/2000/svg"></svg></div><div class="stage-foot"><span>Нажмите на предмет для настройки</span><button id="reset">Сбросить план</button></div></section><aside class="right"><p class="overline">ВЫБРАННЫЙ ПРЕДМЕТ</p><div id="inspector" class="inspector"></div></aside></main>`;
 
 const canvas = document.querySelector<SVGSVGElement>('#canvas')!;
 const inspector = document.querySelector<HTMLDivElement>('#inspector')!;
@@ -20,6 +21,7 @@ function svg(tag:string, attrs:Record<string,string|number> = {}) { const node=d
 function render() {
   save(); widthInput.value=String(plan.width); heightInput.value=String(plan.height);
   document.querySelector('#size-label')!.textContent=`${plan.width} × ${plan.height} см`;
+  document.querySelector('#area')!.textContent=`Площадь: ${(plan.width*plan.height/10000).toLocaleString('ru-RU',{maximumFractionDigits:2})} м²`;
   document.querySelector<HTMLButtonElement>('#undo')!.disabled=!past.length;
   document.querySelector<HTMLButtonElement>('#redo')!.disabled=!future.length;
   canvas.setAttribute('viewBox',`-30 -30 ${plan.width+60} ${plan.height+60}`);
@@ -43,7 +45,23 @@ function render() {
   renderInspector();
 }
 function point(event:PointerEvent){const pt=canvas.createSVGPoint();pt.x=event.clientX;pt.y=event.clientY;const converted=pt.matrixTransform(canvas.getScreenCTM()!.inverse());return {x:converted.x,y:converted.y};}
-function renderInspector(){const item=plan.items.find(i=>i.id===selected);inspector.replaceChildren();if(!item){const p=document.createElement('p');p.textContent='Выберите предмет на плане, чтобы повернуть или удалить его.';inspector.append(p);return;}const title=document.createElement('h2');title.textContent=item.name;const size=document.createElement('p');size.textContent=`${item.w} × ${item.h} см`;const position=document.createElement('p');position.textContent=`Позиция: ${item.x}, ${item.y} см`;const rotate=document.createElement('button');rotate.textContent='Повернуть на 90°';rotate.onclick=()=>commit({...plan,items:plan.items.map(i=>i.id===item.id?clampItem({...i,rotation:(i.rotation+90)%360},plan):i)});const remove=document.createElement('button');remove.className='danger';remove.textContent='Удалить';remove.onclick=()=>{commit({...plan,items:plan.items.filter(i=>i.id!==item.id)});selected=null;render();};inspector.append(title,size,position,rotate,remove);}
+function renderInspector(){
+  const item=plan.items.find(i=>i.id===selected); inspector.replaceChildren();
+  if(!item){const p=document.createElement('p');p.textContent='Выберите предмет на плане, чтобы изменить размер, повернуть или удалить его.';inspector.append(p);return;}
+  const title=document.createElement('h2');title.textContent=item.name;
+  const position=document.createElement('p');position.textContent=`Позиция: ${item.x}, ${item.y} см`;
+  const dims=document.createElement('div');dims.className='item-dimensions';
+  for(const [key,label] of [['w','Ширина'],['h','Глубина']] as const){
+    const wrapper=document.createElement('label');wrapper.textContent=label;
+    const input=document.createElement('input');input.type='number';input.min='20';input.max='400';input.step='10';input.value=String(item[key]);
+    input.addEventListener('change',()=>{const value=Number(input.value);if(!Number.isInteger(value)||value<20||value>400){renderInspector();return;}commit({...plan,items:plan.items.map(i=>i.id===item.id?clampItem({...i,[key]:value},plan):i)});});
+    wrapper.append(input);dims.append(wrapper);
+  }
+  const rotate=document.createElement('button');rotate.textContent='Повернуть на 90°';rotate.onclick=()=>commit({...plan,items:plan.items.map(i=>i.id===item.id?clampItem({...i,rotation:(i.rotation+90)%360},plan):i)});
+  const duplicate=document.createElement('button');duplicate.textContent='Копировать';duplicate.onclick=()=>{if(plan.items.length>=100)return;const copy=clampItem({...item,id:crypto.randomUUID(),x:item.x+20,y:item.y+20},plan);selected=copy.id;commit({...plan,items:[...plan.items,copy]});};
+  const remove=document.createElement('button');remove.className='danger';remove.textContent='Удалить';remove.onclick=()=>{commit({...plan,items:plan.items.filter(i=>i.id!==item.id)});selected=null;render();};
+  inspector.append(title,position,dims,rotate,duplicate,remove);
+}
 for(const preset of presets){const button=document.createElement('button');button.className='preset';button.innerHTML=`<span class="swatch" style="background:${preset.color}"></span><span>${preset.name}<small>${preset.w} × ${preset.h} см</small></span><b>+</b>`;button.onclick=()=>{const next=addItem(plan,preset.kind);selected=next.items.at(-1)?.id??null;commit(next);};document.querySelector('#presets')!.append(button);}
 function resize(){const w=Number(widthInput.value),h=Number(heightInput.value);if(!Number.isInteger(w)||!Number.isInteger(h)||w<200||h<200||w>1200||h>1200){render();return;}const next={...plan,width:w,height:h};next.items=next.items.map(i=>clampItem(i,next));commit(next);}
 widthInput.addEventListener('change',resize);heightInput.addEventListener('change',resize);
@@ -53,5 +71,10 @@ document.querySelector('#reset')!.addEventListener('click',()=>{if(confirm('Ве
 function download(name:string,content:string,type:string){const url=URL.createObjectURL(new Blob([content],{type}));const link=document.createElement('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 document.querySelector('#export-svg')!.addEventListener('click',()=>download('plan.svg',new XMLSerializer().serializeToString(canvas),'image/svg+xml'));
 document.querySelector('#export-json')!.addEventListener('click',()=>download('plan.json',JSON.stringify(plan,null,2),'application/json'));
+document.querySelector('#import-json')!.addEventListener('click',()=>document.querySelector<HTMLInputElement>('#import-file')!.click());
+document.querySelector<HTMLInputElement>('#import-file')!.addEventListener('change',async event=>{
+  const input=event.target as HTMLInputElement; const file=input.files?.[0]; if(!file)return;
+  try{const imported=safePlan(JSON.parse(await file.text()));if(!imported)throw new Error('invalid');selected=null;commit(imported);}catch{alert('Не удалось открыть план. Проверьте JSON и размеры комнаты.');}finally{input.value='';}
+});
 document.addEventListener('keydown',event=>{if(event.target instanceof HTMLInputElement)return;const ctrl=event.ctrlKey||event.metaKey;if(ctrl&&event.key.toLowerCase()==='z'){event.preventDefault();document.querySelector<HTMLButtonElement>(event.shiftKey?'#redo':'#undo')!.click();return;}if(ctrl&&event.key.toLowerCase()==='y'){event.preventDefault();document.querySelector<HTMLButtonElement>('#redo')!.click();return;}if(!selected)return;if(event.key==='Delete'){const item=plan.items.find(i=>i.id===selected);if(item){commit({...plan,items:plan.items.filter(i=>i.id!==selected)});selected=null;render();}return;}const delta:Record<string,[number,number]>={ArrowUp:[0,-10],ArrowDown:[0,10],ArrowLeft:[-10,0],ArrowRight:[10,0]};if(delta[event.key]){event.preventDefault();const [dx,dy]=delta[event.key];commit({...plan,items:plan.items.map(i=>i.id===selected?clampItem({...i,x:i.x+dx,y:i.y+dy},plan):i)});}});
 render();

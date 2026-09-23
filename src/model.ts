@@ -29,6 +29,6 @@ export function safePlan(value: unknown): Plan | null {
   const p = value as Partial<Plan>;
   if (!Number.isFinite(p.width) || !Number.isFinite(p.height) || !Array.isArray(p.items)) return null;
   if (p.width! < 200 || p.width! > 1200 || p.height! < 200 || p.height! > 1200 || p.items.length > 100) return null;
-  if (!p.items.every(i => typeof i.id === 'string' && typeof i.name === 'string' && typeof i.color === 'string' && [i.x,i.y,i.w,i.h,i.rotation].every(Number.isFinite))) return null;
+  if (!p.items.every(i => typeof i.id === 'string' && typeof i.name === 'string' && typeof i.color === 'string' && i.name.length <= 60 && /^#[0-9a-f]{6}$/i.test(i.color) && [i.x,i.y,i.w,i.h,i.rotation].every(Number.isFinite) && i.w >= 20 && i.w <= 400 && i.h >= 20 && i.h <= 400)) return null;
   return {width:p.width!,height:p.height!,items:p.items.map(i => clampItem(i,p as Plan))};
 }

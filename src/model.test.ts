@@ -5,5 +5,5 @@ describe('room model',()=>{
   it('keeps items in room',()=>expect(clampItem({...initialPlan.items[0],x:999,y:-20},initialPlan)).toMatchObject({x:300,y:0}));
   it('adds a furniture preset',()=>expect(addItem(initialPlan,'chair','new').items).toHaveLength(3));
   it('rejects broken imported plans',()=>expect(safePlan({width:10,height:10,items:[]})).toBeNull());
+  it('rejects unreasonable furniture dimensions',()=>expect(safePlan({...initialPlan,items:[{...initialPlan.items[0],w:9999}]})).toBeNull());
 });
-
