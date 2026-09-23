@@ -3,3 +3,18 @@
 .item-dimensions label { font-size: 11px; color: #666b61; min-width: 0; flex: 1; }
 .item-dimensions input { display: block; width: 100%; padding: 9px; margin-top: 7px; border: 1px solid #cbc9bf; background: white; border-radius: 3px; }
 .top-actions { scrollbar-width: thin; }
+.custom-form { margin-top: 24px; padding-top: 20px; border-top: 1px solid #d5d1c6; }
+.custom-form h3 { font-size: 14px; margin: 0 0 14px; }
+.custom-form > label { display: block; font-size: 11px; font-weight: 700; }
+.custom-form input { display: block; width: 100%; min-height: 44px; margin: 7px 0 14px; padding: 9px; border: 1px solid #777d71; border-radius: 3px; background: white; color: #292c28; }
+.custom-form .dimensions { gap: 10px; }
+.custom-form button { width: 100%; min-height: 44px; border: 1px solid #526e68; background: #526e68; color: white; border-radius: 3px; }
+.custom-form button:hover { background: #405951; }
+.plan-facts { font-size: 12px; line-height: 1.5; color: #4c594d; }
+.plan-facts.has-conflicts { color: #8a412f; font-weight: 700; }
+.shape-controls { margin: 20px 0 12px; }
+.shape-controls label { display: block; font-size: 11px; font-weight: 700; color: #4c594d; }
+.shape-controls select, .shape-controls input { display: block; width: 100%; min-height: 44px; margin: 7px 0 12px; padding: 8px; border: 1px solid #777d71; background: white; border-radius: 3px; color: #292c28; }
+.shape-controls .dimensions { gap: 10px; }
+.shape-controls select:focus-visible { outline: 3px solid #555e45; outline-offset: 2px; }
+@media (min-width: 1101px) { .stage { position: sticky; top: 0; align-self: start; height: calc(100vh - 72px); } }
